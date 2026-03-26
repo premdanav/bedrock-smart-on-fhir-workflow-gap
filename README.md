@@ -7,6 +7,14 @@ The current simplified version focuses on:
 - `Patient`
 - `Observation`
 
+The original planned scope was broader and included:
+
+- `Patient`
+- `Condition`
+- `Observation`
+- `MedicationRequest`
+- `Encounter`
+
 It is designed for demo use and showcases how to:
 
 - fetch structured clinical data from Cerner
@@ -38,6 +46,83 @@ Cerner SMART auth
 -> optional Bedrock call
 -> structured provider-review response
 ```
+
+## Planned Full Workflow
+
+The fuller design for this app was:
+
+```text
+Cerner SMART auth
+-> Patient + Condition + Observation + MedicationRequest + Encounter fetch
+-> FHIR normalization
+-> PHI minimization / de-identification
+-> deterministic workflow rules
+-> Bedrock prompt builder
+-> Bedrock runtime call
+-> structured response parser
+-> provider review output
+```
+
+This fuller architecture is still reflected in the service design, even though the current stable demo path is simplified to `Patient + Observation`.
+
+## Planned Resource Scope And Why It Matters
+
+The broader design included the following FHIR resources:
+
+- `Patient`
+  Used for sex/gender and age band, which help contextualize workflow review without sending direct identifiers to Bedrock.
+
+- `Condition`
+  Helps identify chronic disease context such as diabetes or hypertension, so workflow gaps can be interpreted against known problem lists.
+
+- `Observation`
+  Provides measurable clinical signals like HbA1c, blood pressure, lipid markers, creatinine, and similar structured values that drive trend detection.
+
+- `MedicationRequest`
+  Helps identify whether medication review may be overdue and whether active therapies exist that make missing follow-up more relevant.
+
+- `Encounter`
+  Helps determine whether abnormal trends were followed by recent provider review, and whether follow-up may be overdue.
+
+## Why These Resources Were Planned
+
+The goal was not just to read clinical data, but to detect workflow issues such as:
+
+- possible missed follow-up
+- worsening trend without recent review
+- possible duplicate or redundant testing
+- medication review overdue
+- unresolved abnormal trend that may warrant provider attention
+
+Those use cases become much stronger when multiple structured resources are combined:
+
+- `Observation + Encounter` can show abnormal results with no recent review
+- `Observation + Condition` can add relevant clinical context
+- `MedicationRequest + Encounter` can indicate overdue medication review
+- repeated `Observation` values can indicate unresolved or worsening trends
+
+## Current Working Demo vs Planned Full Scope
+
+### Current working demo
+
+The most stable current path uses:
+
+- `Patient`
+- `Observation`
+
+This keeps the workflow endpoint easier to demo and less likely to fail on restricted Cerner scopes or slower resource queries.
+
+### Planned full scope
+
+The intended fuller implementation uses:
+
+- `Patient`
+- `Condition`
+- `Observation`
+- `MedicationRequest`
+- `Encounter`
+
+This is still the product direction, because it gives more clinically meaningful workflow context and improves the quality of deterministic checks and Bedrock review output.
 
 ## Project Structure
 
@@ -115,6 +200,12 @@ Notes:
 - `CERNER_SCOPE` is intentionally simplified to `Patient.read` and `Observation.read`
 - leave `AWS_REGION` and `BEDROCK_MODEL_ID` empty if you want deterministic-only mode
 - Bedrock uses normal AWS SDK credential resolution, so credentials must come from env vars, AWS CLI config, or an IAM role
+
+For the broader planned version, the Cerner scope would expand to:
+
+```env
+CERNER_SCOPE=system/Patient.read system/Condition.read system/Observation.read system/MedicationRequest.read system/Encounter.read
+```
 
 ## Running Locally
 
@@ -219,6 +310,26 @@ If Bedrock is not configured or fails:
 - deterministic workflow findings remain available
 - the app falls back safely
 
+## Why Bedrock Adds Value
+
+Bedrock is not used as a replacement for clinical logic. It adds value by helping convert already safe, structured, de-identified workflow signals into clearer provider-facing output.
+
+That means Bedrock is used for:
+
+- organizing workflow gaps into readable titles
+- producing concise evidence summaries
+- generating provider-review phrasing
+- highlighting notable trends in a structured response
+
+It is not intended for:
+
+- diagnosis
+- treatment recommendations
+- medication changes
+- autonomous decision making
+
+The value of this pattern is that deterministic rules remain in charge of objective detection, while Bedrock improves readability and demo usability.
+
 ## Frontend Dashboard
 
 The backend serves the frontend files from the sibling `frontend/` folder.
@@ -241,6 +352,19 @@ It is intentionally lightweight and meant for showcasing the backend behavior.
 - output is framed as decision support only
 - provider review is always required
 
+The original design also planned to avoid sending the following to Bedrock:
+
+- patient name
+- MRN
+- full DOB
+- address
+- phone
+- email
+- note text
+- document text
+- encounter IDs
+- raw FHIR bundles
+
 ## Current Limitations
 
 - no automated unit or integration test suite yet
@@ -248,6 +372,7 @@ It is intentionally lightweight and meant for showcasing the backend behavior.
 - the simplified workflow mode currently depends only on Patient + Observation
 - Bedrock model support is currently limited to Anthropic and Amazon Nova model formats
 - frontend is a lightweight demo, not a production UI
+- the broader multi-resource workflow scope is planned but not fully stable in the current demo path
 
 ## Why This POC Exists
 
@@ -259,3 +384,19 @@ This app demonstrates a practical hybrid pattern:
 - the system avoids sending raw charts or direct identifiers to the model
 
 That makes it useful as a demo for workflow intelligence, PHI minimization, and Bedrock-assisted provider support.
+
+## Intended Product Value
+
+The broader value proposition behind the planned design is:
+
+- providers get earlier visibility into workflow gaps hidden in structured data
+- teams can identify follow-up issues without relying only on manual chart review
+- Bedrock can improve clarity of review output without requiring raw PHI exposure
+- the architecture supports a compliance-aware path for AI-assisted workflow review
+
+Even in its current simplified form, the app demonstrates the key idea:
+
+- fetch structured data
+- minimize before Bedrock
+- use deterministic checks for reliability
+- use Bedrock only to enhance provider-facing insight output
