@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workflow Gap Dashboard</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">FHIR + Bedrock Demo</p>
+          <h1>Workflow Gap Dashboard</h1>
+          <p class="subtext">
+            Enter a patient ID to detect workflow gaps from structured clinical
+            signals.
+          </p>
+        </div>
+        <div class="mini-flow">
+          <span>FHIR</span>
+          <span>Rules</span>
+          <span>Bedrock</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="card input-card">
+          <div class="card-header">
+            <h2>Run Check</h2>
+            <p>Provider review only</p>
+          </div>
+
+          <form id="workflow-form" class="lookup-form">
+            <label for="patientId">Patient ID</label>
+            <div class="input-row">
+              <input
+                id="patientId"
+                name="patientId"
+                type="text"
+                placeholder="12724066"
+                autocomplete="off"
+                required
+              />
+              <button id="submitButton" type="submit">Analyze</button>
+            </div>
+          </form>
+
+          <div id="statusBanner" class="status-banner neutral">
+            Ready to fetch workflow insights.
+          </div>
+
+          <div id="summaryBar" class="summary-bar hidden"></div>
+
+          <div class="info-strip">
+            <div class="info-chip">
+              <strong>Why Bedrock</strong>
+              <span>Turns safe structured signals into readable review output</span>
+            </div>
+            <div class="info-chip">
+              <strong>Why this POC</strong>
+              <span>Shows gap detection without sending raw PHI to an LLM</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card result-card">
+          <div class="card-header">
+            <h2>Insights</h2>
+            <p>Live backend response</p>
+          </div>
+
+          <div id="resultsEmpty" class="empty-state">
+            No workflow analysis has been run yet.
+          </div>
+
+          <div id="resultsPanel" class="results-panel hidden">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Patient Token</span>
+                <strong id="patientToken">-</strong>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Generated</span>
+                <strong id="generatedAt">-</strong>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Gap Count</span>
+                <strong id="gapCount">0</strong>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Trend Count</span>
+                <strong id="trendCount">0</strong>
+              </div>
+            </div>
+
+            <section class="result-section">
+              <div class="section-title-row">
+                <h3>Workflow Gaps</h3>
+              </div>
+              <div id="workflowGaps" class="stack-list"></div>
+            </section>
+
+            <section class="split-section">
+              <div>
+                <h3>Notable Trends</h3>
+                <div id="notableTrends" class="stack-list compact"></div>
+              </div>
+              <div>
+                <h3>Safety Notes</h3>
+                <div id="safetyNotes" class="stack-list compact"></div>
+              </div>
+            </section>
+
+            <section id="debugMetaSection" class="debug-meta hidden">
+              <h3>Meta</h3>
+              <pre id="debugMeta"></pre>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
